@@ -6,13 +6,32 @@ open Akka.Configuration
 
 // User, Tweet Type --He
 // Handler --Chi
-type retwMsg = {
-    user: String
+
+type regMsg = {
+    username: String
     password: String
-    tweet: String
 }
+
+type subMsg = {
+    username: String
+    password: String
+    target: String
+}
+
+type sendMsg = {
+    username: String
+    password: String
+    tweet_cont: String // tweet_content
+}
+
+type retwMsg = {
+    username: String
+    password: String
+    tweet_id: String // tweet_id
+}
+
 type queryMsg = {
-    user: String
+    username: String
     password: String
 }
 type quertMsg = {
@@ -22,41 +41,144 @@ type quermMsg = {
     mention: String
 }
 
-type Tweet(tweet_id:string, text:string, is_re_tweet:bool) =
-    member this.tweet_id = tweet_id
-    member this.text = text
-    member this.is_re_tweet = is_re_tweet
-//    member this.time = System.DateTime.Now.ToFileTimeUtc() |> string
+type Tweet(id: string, content: string) =
+    member this.id = id
+    member this.content = content
     override this.ToString() =
-      let mutable res = ""
-      if is_re_tweet then
-        res <- sprintf "[retweet][%s]%s" this.tweet_id this.text
-      else
-        res <- sprintf "[%s]%s" this.tweet_id this.text
-//        res <- sprintf "%s" this.text
-      res
-type User(user_name:string, password:string) =
-    let mutable subscribes = List.empty: User list
-    let mutable tweets = List.empty: Tweet list
-    member this.user_name = user_name
+        let mutable res = ""
+        if isRetweet then
+            res <- "[retweet]" + "id = " + this.id + " content = " + this.content
+        else
+            res <- "id = " + this.id + " content = " + this.content
+        res
+type User(username: string, password: string) =
+    let mutable subscribeList = List<User>.Empty
+    let mutable tweetList = List<String>.Empty
+
+    member this.username = username
     member this.password = password
-    member this.addSubscribe x =
-        subscribes <- List.append subscribes [x]
-    member this.getSubscribes() =
-        subscribes
-    member this.addTweet x =
-        tweets <- List.append tweets [x]
-    member this.getTweets() =
-        tweets
-    override this.ToString() = 
-       this.user_name
+
+    member this.addSubscriber(user: User) =
+        if user.username = username && user.password = password then
+            printfn "cannot subscribe self!"
+        else
+            subscribeList <- [user] |> List.append(subscribeList)
+    member this.getSubscriberList =
+        subscribeList
+    member this.addTweet(tweetid: String) =
+        tweetList <- [tweetid] |> List.append(tweetList)
+    member this.getTweetList =
+        tweetList
+    override this.ToString() =
+        let res = "username = " + this.username
+        res
+
 
 let mutable users = new Map<String, User>([])          // <user_name, user_obj>
 let mutable tweets = new Map<String, Tweet>([])        // <tweet_id, tweet_obj>
-let mutable tags = new Map<String, Tweet list>([])     // <tag_content, list of tweet_obj>
-let mutable mentions = new Map<String, Tweet list>([]) // <mention_content, list of tweet_obj>
+let mutable tags = new Map<String, String list>([])     // <tag_content, list of tweet_id>
+let mutable mentions = new Map<String, String list>([]) // <mention_content, list of tweet_id>
+
+let verify username password = 
+    let mutable valid = false
+    if users.ContainsKey(username) then
+        let user = users.[username]
+        if password = user.password then
+            valid <- true
+    valid
+
+let register username password = 
+    let mutable resp = ""
+    if users.ContainsKey(username) then
+        resp <- "Username Already Taken!"
+    else
+        let user = new User(username, password)
+        users <- users.Add(user.username, user)
+        user.addSubscriber user
+        resp <- "Registration of :" + username + "Success!"
+    resp
+
+let send username password tweet_cont =
+    let mutable resp = ""
+    if not (users.ContainsKey(username)) then
+        resp <- "No User Found!"
+    else
+        if not (verify username password) then
+            resp <- "Password Not Correct!"
+        else
+            let tweetid = (System.DateTime.Now.ToFileTimeUtc()|> string) + username
+            let tweet = new Tweet(tweetid, tweet_cont)
+            let user = users.[username]
+            user.addTweet tweetid
+            tweets <- tweets.Add(tweetid, tweet)
+
 
 let system = System.create "Project4" (Configuration.load())
+let createRegActor () =
+    spawn system ("Actor" + "retw")
+        (fun mailbox ->          
+            let buildTime = Diagnostics.Stopwatch()
+            buildTime.Start()
+            let rec loop() = actor {
+                let! message = mailbox.Receive()
+                let sender = mailbox.Sender()             
+                match box message with
+                | :? int as msg ->
+                    printfn "%i" msg
+                | :? string as msg ->
+                    printfn "%s" msg
+                | :? regMsg as msg ->
+                    let username = msg.username
+                    let password = msg.password
+                    let res = register username password
+                    Threading.Thread.Sleep(1000)
+                | _ -> () 
+                return! loop()
+            }
+            loop()
+        )  // done
+let createSubActor () =
+    spawn system ("Actor" + "retw")
+        (fun mailbox ->          
+            let buildTime = Diagnostics.Stopwatch()
+            buildTime.Start()
+            let rec loop() = actor {
+                let! message = mailbox.Receive()
+                let sender = mailbox.Sender()             
+                match box message with
+                | :? int as msg ->
+                    printfn "%i" msg
+                | :? string as msg ->
+                    printfn "%s" msg
+                | :? subMsg as msg ->
+                    
+                    Threading.Thread.Sleep(1000)
+                | _ -> () 
+                return! loop()
+            }
+            loop()
+        )
+let createSendActor () =
+    spawn system ("Actor" + "retw")
+        (fun mailbox ->          
+            let buildTime = Diagnostics.Stopwatch()
+            buildTime.Start()
+            let rec loop() = actor {
+                let! message = mailbox.Receive()
+                let sender = mailbox.Sender()             
+                match box message with
+                | :? int as msg ->
+                    printfn "%i" msg
+                | :? string as msg ->
+                    printfn "%s" msg
+                | :? sendMsg as msg ->
+                    let res = send username password tweet_cont
+                    Threading.Thread.Sleep(1000)
+                | _ -> () 
+                return! loop()
+            }
+            loop()
+        )
 
 let createRetwActor () =
     spawn system ("Actor" + "retw")
@@ -170,7 +292,8 @@ let Handlers (num: int) =
                     match operation with 
                     //| "reg"  ->                 
                     //| "send" ->
-                    //| "sub"  ->
+                    | "sub"  ->
+                        let newMessage = {user = username; password = password; tweet = tweet_content}
                     | "retw" ->
                         let newMessage = {user = username; password = password; tweet = tweet_content}
                         let destActor = system.ActorSelection("akka://Project4/user/Actor" + "retw")

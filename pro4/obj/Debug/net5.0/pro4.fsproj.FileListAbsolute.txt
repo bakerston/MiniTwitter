@@ -25,3 +25,4 @@ C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\pro4\pro4\obj\Debug\net5.0\
 C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\pro4\pro4\obj\Debug\net5.0\pro4.dll
 C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\pro4\pro4\obj\Debug\net5.0\pro4.pdb
 C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\pro4\pro4\obj\Debug\net5.0\pro4.genruntimeconfig.cache
+c:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\pro4\pro4\obj\Debug\net5.0\pro4.fsproj.CoreCompileInputs.cache
