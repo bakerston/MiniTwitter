@@ -4,39 +4,57 @@ open System.IO
 open System.Security.Cryptography
 open Akka.Configuration
 
-// User, Tweet Type --He
-// Handler --Chi
+////////////////////////////////////////////////////////
+// 1. CLIENT -----message[,,,,,]-----> SERVER.HANDLER //
+////////////////////////////////////////////////////////
+// 2. SERVER.HANDLER SPLITS AND ANAYLSES MESSAGE ///////
+////////////////////////////////////////////////////////
+// 3. SERVER.HANDLER -----functMsg------> functActor  //
+////////////////////////////////////////////////////////
+// 4. functActor PROCESSES functMsg  ///////////////////
+////////////////////////////////////////////////////////
+
+// regMsg: registration; subMsg: subscribe; sendMsg: post tweet;
+// retwMsg: retweet;       queryMsg: query by user;
+// quertMsg: query by tag; quermMsg: query by mention.
+
+/////////////////////////////////////////////////////////
+// Format of CLIENT MESSAGE:  ///////////////////////////
+// 0. operation [reg, sub, send, ...]        ////////////
+// 1. usrename        2. tweet_content       //////////// 
+// 3. tweet_id        4. user to subscribe   ////////////
+// 5. string of tags  6. string of mentions  ////////////
+/////////////////////////////////////////////////////////
 
 type regMsg = {
-    username: String
+    username: String    // username to register    
 }
 type subMsg = {
-    username: String
-    target: String
+    username: String    // username of subscriber
+    target: String      // whom to subscribe
 }
 type sendMsg = {
-    username: String
+    username: String   // username of the poster 
     tweet_cont: String // tweet_content
-    tag_string: String // tags
-    men_string: String // mentions
+    tag_string: String // string containing all tags, split by "#"
+    men_string: String // string containing all mentions, split by "@
 }
 type retwMsg = {
-    username: String
-    tweet_id: String // tweet_id
+    username: String    // username of the poster
+    tweet_id: String    // id of the tweet TO BE RETWEETED.
 }
 type queryMsg = {
-    user: String
+    user: String        // user to query
 }
 type quertMsg = {
-    tag: String
+    tag: String         // tag to query
 }
 type quermMsg = {
-    mention: String
+    mention: String     // mention to query
 }
 type Tweet(id: string, content: string) =
     let mutable tag_list = List<String>.Empty     // List of tags in this tweet
     let mutable mention_list = List<String>.Empty // List of mentions in this tweet
-    let mutable origin_id = ""
     member this.id = id
     member this.content = content
     member this.set_tag taglist = 
@@ -47,28 +65,23 @@ type Tweet(id: string, content: string) =
         tag_list
     member this.get_men = 
         mention_list
-    override this.ToString() =
-        let mutable res = ""
-        res <- "id = " + this.id + " content = " + this.content
-        res
+
 type User(username: string) =
     let mutable subscribe_list = List<String>.Empty // List of subscribed names of this user
     let mutable tweet_list = List<String>.Empty     // List of tweet ids of this user
     member this.username = username
-    member this.addSubscribe(user2: String) =
-        if user2 = username then
+    member this.subscribe(target_username: String) =
+        if target_username = username then
             printfn "You Cannot Subscribe Yourself!"
         else
-            subscribe_list <- [user2] |> List.append(subscribe_list)
+            subscribe_list <- [target_username] |> List.append(subscribe_list)
     member this.getSubscriberList =
         subscribe_list
     member this.addTweet(tweetid: String) =
         tweet_list <- [tweetid] |> List.append(tweet_list)
     member this.getTweetList =
         tweet_list
-    override this.ToString() =
-        let res = "username = " + this.username
-        res
+
 
 let mutable user_total = new Map<String, User>([])           // <user_name,       user_obj>
 let mutable tweet_total = new Map<String, Tweet>([])         // <tweet_id,        tweet_obj>
@@ -90,15 +103,15 @@ let register username =
     else
         let user = new User(username)
         user_total <- user_total.Add(user.username, user)
-        user.addSubscribe username
+        user.subscribe username
         resp <- "Registration of :" + username + "Success!"
     resp // done
 
 let splitTag = (fun (line : string) -> Seq.toList (line.Split "#"))
 let splitMen = (fun (line : string) -> Seq.toList (line.Split "@"))
 
-// Format: TagA#TagB#TagC...#TagX
-// Format: MenA#MenB#MenC...#MenX
+// tag_string Format:     TagA#TagB#TagC...#TagX
+// mention_string Format: MenA#MenB#MenC...#MenX
 let send username tweet_cont tag_string men_string =
     let mutable resp = ""
     if not (user_total.ContainsKey(username)) then
@@ -142,16 +155,18 @@ let send username tweet_cont tag_string men_string =
                 prevlist <- [tweetid] |> List.append prevlist
                 tag_total <- tag_total.Add(curmen, prevlist)
                 idx <- idx + 1 // done      
+
 let subscribe user1 user2 = // string, string
     let mutable resp = ""
     if not (user_total.ContainsKey(user1) && user_total.ContainsKey(user2)) then
         resp <- "User1 or User2 Not Found!" 
     else
         let user = user_total.[user1]
-        user.addSubscribe user2
+        user.subscribe user2
         resp <- user1 + " Subscribed " + user2 + "Successfully!"
     resp // done
-let retweet user tweet_id = 
+
+let retweet user tweet_id = // string, string
     let mutable resp = ""
     if not (user_total.ContainsKey(user)) then
         resp <- "User Not Found!"
@@ -193,7 +208,8 @@ let retweet user tweet_id =
                 prevlist <- mention_total.[curmen]
                 prevlist <- [new_id] |> List.append prevlist
                 mention_total <- mention_total.Add(curmen, prevlist)
-                idx <- idx + 1 // done               
+                idx <- idx + 1 // done 
+                
 let query username = 
     let mutable resp = ""
     if not (user_total.ContainsKey(username)) then
@@ -210,6 +226,7 @@ let query username =
         // let sub_tweet_list = List.concat sub_tweet_lists
         //let output_string = sub_tweet_list |> String.concat "//"
         //resp <- "Tweets Subscribed :" + output_string
+
 let quert tag = 
     let mutable resp = ""
     if not (tag_total.ContainsKey(tag)) then
@@ -227,6 +244,7 @@ let querm men =
         resp <- "Tweet containing Mention :" + res1 // done
 
 let system = System.create "Project4" (Configuration.load())
+
 let createRegActor () =
     spawn system ("Actor" + "retw")
         (fun mailbox ->          
@@ -243,12 +261,15 @@ let createRegActor () =
                 | :? regMsg as msg ->
                     let username = msg.username
                     let res = register username
+
+                    sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
                 return! loop()
             }
             loop()
         )           // done
+
 let createSubActor () =           
     spawn system ("Actor" + "retw")
         (fun mailbox ->          
@@ -266,12 +287,15 @@ let createSubActor () =
                     let user = msg.username
                     let target_user = msg.target
                     let res = subscribe user target_user
+
+                    sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
                 return! loop()
             }
             loop()
         )// done
+
 let createSendActor () = 
     spawn system ("Actor" + "retw")
         (fun mailbox ->          
@@ -290,8 +314,8 @@ let createSendActor () =
                     let tweet_cont = msg.tweet_cont
                     let tag_string = msg.tag_string
                     let men_string = msg.men_string
-
                     let res = send user tweet_cont tag_string men_string
+
                     sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
@@ -299,6 +323,7 @@ let createSendActor () =
             }
             loop()
         )         // done
+
 let createRetwActor () =
     spawn system ("Actor" + "retw")
         (fun mailbox ->          
@@ -316,6 +341,7 @@ let createRetwActor () =
                     let user = msg.username
                     let tweet_id = msg.tweet_id
                     let res = retweet user tweet_id
+
                     sender <? res |> ignore
                     Threading.Thread.Sleep(1000)
                 | _ -> () 
@@ -323,6 +349,7 @@ let createRetwActor () =
             }
             loop()
         )          // done
+
 let createQueryActor () =
     spawn system ("Actor" + "query")
         (fun mailbox ->          
@@ -339,6 +366,7 @@ let createQueryActor () =
                 | :? queryMsg as msg ->
                     let user = msg.user
                     let res = query user
+
                     sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
@@ -346,6 +374,7 @@ let createQueryActor () =
             }
             loop()
         )           // done
+
 let createTagActor () =
     spawn system ("Actor" + "tag")
         (fun mailbox ->          
@@ -362,6 +391,7 @@ let createTagActor () =
                 | :? quertMsg as msg ->
                     let tag = msg.tag
                     let res = quert tag
+
                     sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
@@ -386,6 +416,7 @@ let createMentionActor () =
                 | :? quermMsg as msg ->
                     let men = msg.mention
                     let res = querm men
+
                     sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
@@ -393,11 +424,6 @@ let createMentionActor () =
             }
             loop()
         )
-
-
-// Actors & operation [reg,send,sub--He | retw,query,quert,querm--Chi]
-// command: operation + username + password + tweet + she/he + #tags + @mention
-
 
 let Handlers (num: int) =
     spawn system ("Actor" + num.ToString())
@@ -414,12 +440,11 @@ let Handlers (num: int) =
                     let result = msg.Split ','
                     let mutable operation = result.[0]
                     let mutable username = result.[1]
-                    let mutable password = result.[2]
-                    let mutable tweet_content = result.[3]
-                    let mutable tweet_id = result.[4]
-                    let mutable dest_user = result.[5]
-                    let mutable tag = result.[6]
-                    let mutable mention = result.[7]
+                    let mutable tweet_content = result.[2]
+                    let mutable tweet_id = result.[3]
+                    let mutable dest_user = result.[4]
+                    let mutable tag = result.[5]
+                    let mutable mention = result.[6]
                     match operation with 
                     | "reg"  ->      
                         let newMessage = {username = username}
@@ -449,11 +474,14 @@ let Handlers (num: int) =
                         let newMessage = {mention = mention}
                         let destActor = system.ActorSelection("akka://Project4/user/Actor" + "querm")
                         destActor <! newMessage
+                    | _ -> () 
                 | _ -> () 
                 return! loop()
             }
             loop()
         )
+
+
 [<EntryPoint>] 
 let main argv =
     printfn "%A" argv
