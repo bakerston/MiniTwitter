@@ -26,6 +26,26 @@ open Akka.Configuration
 // 5. string of tags  6. string of mentions  ////////////
 /////////////////////////////////////////////////////////
 
+////Used for remote communication
+//let config =
+//    Configuration.parse
+//        @"akka {
+//            actor {
+//                provider = ""Akka.Remote.RemoteActorRefProvider, Akka.Remote""
+//                debug : {
+//                    receive : on
+//                    autoreceive : on
+//                    lifecycle : on
+//                    event-stream : on
+//                    unhandled : on
+//                }
+//            }
+//            remote.helios.tcp {
+//                hostname = ""localhost""
+//                port = 9001
+//            }
+//        }"
+
 type regMsg = {
     username: String    // username to register    
 }
@@ -103,25 +123,32 @@ let register username =
     else
         let user = new User(username)
         user_total <- user_total.Add(user.username, user)
-        user.subscribe username
-        resp <- "Registration of :" + username + "Success!"
+        //user.subscribe username
+        printfn "user_total = %A" user_total
+        resp <- "Registration of : " + username + " Success!"
     resp // done
 
-let splitTag = (fun (line : string) -> Seq.toList (line.Split "#"))
-let splitMen = (fun (line : string) -> Seq.toList (line.Split "@"))
+let splitTag = (fun (line : string) -> Seq.toList (line.Split '#'))
+let splitMen = (fun (line : string) -> Seq.toList (line.Split '@'))
 
 // tag_string Format:     TagA#TagB#TagC...#TagX
 // mention_string Format: MenA#MenB#MenC...#MenX
 let send username tweet_cont tag_string men_string =
     let mutable resp = ""
     if not (user_total.ContainsKey(username)) then
-        resp <- "User Not Found!"
+        resp <- "User " + username + " Not Found!"
     else
         let tweetid = (System.DateTime.Now.ToFileTimeUtc()|> string) + username
         let tweet = new Tweet(tweetid, tweet_cont)
         let user = user_total.[username]
         user.addTweet tweetid
-        tweet_total <- tweet_total.Add(tweetid, tweet) 
+
+        printfn "%s \'s tweetList = %A" username user.getTweetList
+
+        tweet_total <- tweet_total.Add(tweetid, tweet)
+
+        printfn "tweet_total = %A" tweet_total
+
         let mutable prevlist = List<String>.Empty 
         let mutable tmplist = List<String>.Empty 
         let mutable idx = 0
@@ -154,9 +181,11 @@ let send username tweet_cont tag_string men_string =
                 prevlist <- mention_total.[curmen]
                 prevlist <- [tweetid] |> List.append prevlist
                 tag_total <- tag_total.Add(curmen, prevlist)
-                idx <- idx + 1 // done      
+                idx <- idx + 1 // done
+        resp <- "Send success!"
+    resp
 
-let subscribe user1 user2 = // string, string
+let subscribe (user1: string, user2: string) =
     let mutable resp = ""
     if not (user_total.ContainsKey(user1) && user_total.ContainsKey(user2)) then
         resp <- "User1 or User2 Not Found!" 
@@ -166,7 +195,7 @@ let subscribe user1 user2 = // string, string
         resp <- user1 + " Subscribed " + user2 + "Successfully!"
     resp // done
 
-let retweet user tweet_id = // string, string
+let retweet (user: String, tweet_id: String) =
     let mutable resp = ""
     if not (user_total.ContainsKey(user)) then
         resp <- "User Not Found!"
@@ -208,7 +237,9 @@ let retweet user tweet_id = // string, string
                 prevlist <- mention_total.[curmen]
                 prevlist <- [new_id] |> List.append prevlist
                 mention_total <- mention_total.Add(curmen, prevlist)
-                idx <- idx + 1 // done 
+                idx <- idx + 1 // done
+        resp <- "Retweet Success!"
+    resp
                 
 let query username = 
     let mutable resp = ""
@@ -234,6 +265,7 @@ let quert tag =
     else
         let res1 = tag_total.[tag] |> List.map(fun x -> tweet_total.[x]) |> List.map(fun x -> x.content) |> String.concat "\n"
         resp <- "Tweet containing Tag :" + res1 // done
+    resp
 
 let querm men = 
     let mutable resp = ""
@@ -242,11 +274,15 @@ let querm men =
     else
         let res1 = mention_total.[men] |> List.map(fun x -> tweet_total.[x]) |> List.map(fun x -> x.content) |> String.concat "\n"
         resp <- "Tweet containing Mention :" + res1 // done
+    resp
 
 let system = System.create "Project4" (Configuration.load())
 
-let createRegActor () =
-    spawn system ("Actor" + "retw")
+////Used for remote communication
+//let system = System.create "Project4" config
+
+let RegActor =
+    spawn system ("Actor-register")
         (fun mailbox ->          
             let buildTime = Diagnostics.Stopwatch()
             buildTime.Start()
@@ -262,7 +298,9 @@ let createRegActor () =
                     let username = msg.username
                     let res = register username
 
-                    sender <? res |> ignore
+                    printfn "register response: %s" res
+
+                    //sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
                 return! loop()
@@ -270,8 +308,8 @@ let createRegActor () =
             loop()
         )           // done
 
-let createSubActor () =           
-    spawn system ("Actor" + "retw")
+let SubActor =           
+    spawn system ("Actor" + "-subscribe")
         (fun mailbox ->          
             let buildTime = Diagnostics.Stopwatch()
             buildTime.Start()
@@ -286,9 +324,9 @@ let createSubActor () =
                 | :? subMsg as msg ->
                     let user = msg.username
                     let target_user = msg.target
-                    let res = subscribe user target_user
+                    let res = subscribe(user, target_user)
 
-                    sender <? res |> ignore
+                    //sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
                 return! loop()
@@ -296,8 +334,8 @@ let createSubActor () =
             loop()
         )// done
 
-let createSendActor () = 
-    spawn system ("Actor" + "retw")
+let SendActor = 
+    spawn system ("Actor" + "-send")
         (fun mailbox ->          
             let buildTime = Diagnostics.Stopwatch()
             buildTime.Start()
@@ -316,7 +354,9 @@ let createSendActor () =
                     let men_string = msg.men_string
                     let res = send user tweet_cont tag_string men_string
 
-                    sender <? res |> ignore
+                    printfn "send response: %s" res
+
+                    //sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
                 return! loop()
@@ -324,8 +364,8 @@ let createSendActor () =
             loop()
         )         // done
 
-let createRetwActor () =
-    spawn system ("Actor" + "retw")
+let RetwActor =
+    spawn system ("Actor" + "-retw")
         (fun mailbox ->          
             let buildTime = Diagnostics.Stopwatch()
             buildTime.Start()
@@ -340,9 +380,11 @@ let createRetwActor () =
                 | :? retwMsg as msg ->
                     let user = msg.username
                     let tweet_id = msg.tweet_id
-                    let res = retweet user tweet_id
+                    let res = retweet(user, tweet_id)
 
-                    sender <? res |> ignore
+                    printfn "retweet response: %s" res
+
+                    //sender <? res |> ignore
                     Threading.Thread.Sleep(1000)
                 | _ -> () 
                 return! loop()
@@ -350,8 +392,8 @@ let createRetwActor () =
             loop()
         )          // done
 
-let createQueryActor () =
-    spawn system ("Actor" + "query")
+let QueryActor =
+    spawn system ("Actor" + "-query")
         (fun mailbox ->          
             let buildTime = Diagnostics.Stopwatch()
             buildTime.Start()
@@ -367,7 +409,9 @@ let createQueryActor () =
                     let user = msg.user
                     let res = query user
 
-                    sender <? res |> ignore
+                    printfn "query response: %s" res
+
+                    //sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
                 return! loop()
@@ -375,8 +419,8 @@ let createQueryActor () =
             loop()
         )           // done
 
-let createTagActor () =
-    spawn system ("Actor" + "tag")
+let TagActor =
+    spawn system ("Actor" + "-tag")
         (fun mailbox ->          
             let buildTime = Diagnostics.Stopwatch()
             buildTime.Start()
@@ -392,7 +436,9 @@ let createTagActor () =
                     let tag = msg.tag
                     let res = quert tag
 
-                    sender <? res |> ignore
+                    printfn "query tag response: %s" res
+
+                    //sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
                 return! loop()
@@ -400,8 +446,8 @@ let createTagActor () =
             loop()
         )
 
-let createMentionActor () =
-    spawn system ("Actor" + "mention")
+let MentionActor =
+    spawn system ("Actor" + "-mention")
         (fun mailbox ->          
             let buildTime = Diagnostics.Stopwatch()
             buildTime.Start()
@@ -417,7 +463,9 @@ let createMentionActor () =
                     let men = msg.mention
                     let res = querm men
 
-                    sender <? res |> ignore
+                    printfn "query mention response: %s" res 
+
+                    //sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
                 return! loop()
@@ -425,8 +473,8 @@ let createMentionActor () =
             loop()
         )
 
-let Handlers (num: int) =
-    spawn system ("Actor" + num.ToString())
+let Handler =
+    spawn system ("Actor" + "-MsgHandler")
         (fun mailbox ->          
             //let buildTime = Diagnostics.Stopwatch()
             //buildTime.Start()
@@ -438,6 +486,7 @@ let Handlers (num: int) =
                     printfn "%i" msg
                 | :? string as msg ->                   
                     let result = msg.Split ','
+                    //printfn "result = %A" result
                     let mutable operation = result.[0]
                     let mutable username = result.[1]
                     let mutable tweet_content = result.[2]
@@ -448,33 +497,74 @@ let Handlers (num: int) =
                     match operation with 
                     | "reg"  ->      
                         let newMessage = {username = username}
-                        let destActor = system.ActorSelection("akka://Project4/user/Actor" + "reg")
+
+                        //Used for local communication
+                        let destActor = RegActor
+
+                        ////Used for remote communication
+                        //let destActor = system.ActorSelection("akka.tcp://Project4@localhost:9001/user/Actor" + "reg")
+                            
                         destActor <! newMessage                      
                     | "send" ->
                         let newMessage = {username = username; tweet_cont = tweet_content; tag_string = tag; men_string = mention}
-                        let destActor = system.ActorSelection("akka://Project4/user/Actor" + "send")
+
+                        //Used for local communication
+                        let destActor = SendActor
+
+                        ////Used for remote communication
+                        //let destActor = system.ActorSelection("akka.tcp://Project4@localhost:9001/user/Actor" + "send")
+
                         destActor <! newMessage
                     | "sub"  ->
                         let newMessage = {username = username; target = dest_user}
-                        let destActor = system.ActorSelection("akka://Project4/user/Actor" + "sub")
+
+                        //Used for local communication
+                        let destActor = SubActor
+
+                        ////Used for remote communication
+                        //let destActor = system.ActorSelection("akka.tcp://Project4@localhost:9001/user/Actor" + "sub")
+
                         destActor <! newMessage
                     | "retw" ->
                         let newMessage = {username = username; tweet_id = tweet_id}
-                        let destActor = system.ActorSelection("akka://Project4/user/Actor" + "retw")
+
+                        //Used for local communication
+                        let destActor = RetwActor
+
+                        ////Used for remote communication
+                        //let destActor = system.ActorSelection("akka.tcp://Project4@localhost:9001/user/Actor" + "retw")
+
                         destActor <! newMessage
                     | "query"  ->
                         let newMessage = {user = username}
-                        let destActor = system.ActorSelection("akka://Project4/user/Actor" + "query")
+                        let destActor = QueryActor
+
+                        ////Used for remote communication
+                        //let destActor = system.ActorSelection("akka.tcp://Project4@localhost:9001/user/Actor" + "query")
+
                         destActor <! newMessage
                     | "quert" ->
                         let newMessage = {tag = tag}
-                        let destActor = system.ActorSelection("akka://Project4/user/Actor" + "quert")
+
+                        //Used for local communication
+                        let destActor = TagActor
+
+                        ////Used for remote communication
+                        //let destActor = system.ActorSelection("akka.tcp://Project4@localhost:9001/user/Actor" + "quert")
+
                         destActor <! newMessage
                     | "querm"  ->
                         let newMessage = {mention = mention}
-                        let destActor = system.ActorSelection("akka://Project4/user/Actor" + "querm")
+
+                        //Used for local communication
+                        let destActor = MentionActor
+
+                        ////Used for remote communication
+                        //let destActor = system.ActorSelection("akka.tcp://Project4@localhost:9001/user/Actor" + "querm")
+
                         destActor <! newMessage
-                    | _ -> () 
+                    | _ ->
+                        printfn "400 Bad Request!"
                 | _ -> () 
                 return! loop()
             }
@@ -484,7 +574,6 @@ let Handlers (num: int) =
 
 [<EntryPoint>] 
 let main argv =
-    printfn "%A" argv
     // once we received a set of string, dispatch to different functional actor
     // dispatch was based on the opt.
 
@@ -492,6 +581,51 @@ let main argv =
     printfn "-------------------------------------------------   " 
     printfn "Twitter Server is running...   " 
     printfn "-------------------------------------------------   "
+
+    //register test
+    let regMsg1 = "reg,hjn,,,,,"
+    Handler <! regMsg1
+    Threading.Thread.Sleep(1000)
+    let regMsg2 = "reg,嘉然今天吃什么,,,,,"
+    Handler <! regMsg2
+    Threading.Thread.Sleep(1000)
+    let regMsg3 = "reg,乃琳,,,,,"
+    Handler <! regMsg3
+    Threading.Thread.Sleep(1000)
+    let regMsg4 = "reg,贝拉,,,,,"
+    Handler <! regMsg4
+    Threading.Thread.Sleep(1000)
+
+    //send test
+    let sendMsg1 = "send,hjn,然然可爱捏,,,嘉然超话,嘉然今天吃什么"
+    Handler <! sendMsg1
+    Threading.Thread.Sleep(1000)
+    let sendMsg2 = "send,嘉然今天吃什么,然然不是你的电子宠物,,,ASOUL超话#乃琳超话,乃琳@贝拉"
+    Handler <! sendMsg2
+    Threading.Thread.Sleep(1000)
+
+    //subscribe test
+    let subMsg = "sub,hjn,,,嘉然今天吃什么,,"
+    Handler <! subMsg
+    Threading.Thread.Sleep(1000)
+
+    //retweet test
+
+    //query test
+    let queryMsg = "query,hjn,,,,,"
+    Handler <! queryMsg
+    Threading.Thread.Sleep(1000)
+
+    //query tag test
+    let quertMsg = "quert,,,,,嘉然超话,"
+    Handler <! quertMsg
+    Threading.Thread.Sleep(1000)
+
+    //query mention test
+    let quermMsg = "querm,,,,,,嘉然今天吃什么"
+    Handler <! quermMsg
+    Threading.Thread.Sleep(1000)
+
     
     // For function reg
     Console.ReadLine() |> ignore
