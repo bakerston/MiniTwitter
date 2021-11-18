@@ -28,49 +28,59 @@ open Akka.Configuration
 /////////////////////////////////////////////////////////
 
 ////Used for remote communication
-//let config =
-//    Configuration.parse
-//        @"akka {
-//            actor {
-//                provider = ""Akka.Remote.RemoteActorRefProvider, Akka.Remote""
-//                debug : {
-//                    receive : on
-//                    autoreceive : on
-//                    lifecycle : on
-//                    event-stream : on
-//                    unhandled : on
-//                }
-//            }
-//            remote.helios.tcp {
-//                hostname = ""localhost""
-//                port = 9001
-//            }
-//        }"
+let config =
+    Configuration.parse
+        @"akka {
+            actor {
+                provider = ""Akka.Remote.RemoteActorRefProvider, Akka.Remote""
+                debug : {
+                    receive : on
+                    autoreceive : on
+                    lifecycle : on
+                    event-stream : on
+                    unhandled : on
+                }
+            }
+            remote.helios.tcp {
+                hostname = ""localhost""
+                port = 9002
+            }
+        }"
+type responseMsg = {
+    content: String
+}
 
 type regMsg = {
+    //sender: Akka.Actor.IActorRef  // Client Actor
     username: String    // username to register    
 }
 type subMsg = {
+    //sender: Akka.Actor.IActorRef
     username: String    // username of subscriber
     target: String      // whom to subscribe
 }
 type sendMsg = {
+    //sender: Akka.Actor.IActorRef
     username: String   // username of the poster 
     tweet_cont: String // tweet_content
     tag_string: String // string containing all tags, split by "#"
     men_string: String // string containing all mentions, split by "@
 }
 type retwMsg = {
+    //sender: Akka.Actor.IActorRef
     username: String    // username of the poster
     tweet_id: String    // id of the tweet TO BE RETWEETED.
 }
 type queryMsg = {
+    //sender: Akka.Actor.IActorRef
     user: String        // user to query
 }
 type quertMsg = {
+    //sender: Akka.Actor.IActorRef
     tag: String         // tag to query
 }
 type quermMsg = {
+    //sender: Akka.Actor.IActorRef
     mention: String     // mention to query
 }
 type Tweet(id: string, content: string) =
@@ -109,6 +119,9 @@ let mutable tweet_total = new Map<String, Tweet>([])         // <tweet_id,      
 let mutable tag_total = new Map<String, String list>([])     // <tag_content,     list of tweet_id>
 let mutable mention_total = new Map<String, String list>([]) // <mention_content, list of tweet_id>
 
+
+let shuffleR (r : Random) xs = xs |> Seq.sortBy (fun _ -> r.Next())
+
 //
 // let mutable tag_list = []
 
@@ -123,14 +136,14 @@ let mutable mention_total = new Map<String, String list>([]) // <mention_content
 let register username = 
     let mutable resp = ""
     if user_total.ContainsKey(username) then
-        resp <- "Username Already Taken!"
+        resp <- "[Server Response][Register]: Username Already Taken!"
     else
         let user = new User(username)
         user_total <- user_total.Add(user.username, user)
         //user.subscribe username
         printfn "user_total = %A" user_total
-        resp <- "Registration of : " + username + " Success!"
-    resp // done
+        resp <- "[Server Response][Register]: Registration of : " + username + " Success!"
+    resp 
 
 let splitTag = (fun (line : string) -> Seq.toList (line.Split '#'))
 let splitMen = (fun (line : string) -> Seq.toList (line.Split '@'))
@@ -140,18 +153,18 @@ let splitMen = (fun (line : string) -> Seq.toList (line.Split '@'))
 let send username tweet_cont tag_string men_string =
     let mutable resp = ""
     if not (user_total.ContainsKey(username)) then
-        resp <- "User " + username + " Not Found!"
+        resp <- "[Server Response][Send]: User "+username+" Not Found!"
     else
         let tweetid = (System.DateTime.Now.ToFileTimeUtc()|> string) + username
         let tweet = new Tweet(tweetid, tweet_cont)
         let user = user_total.[username]
         user.addTweet tweetid
 
-        printfn "%s \'s tweetList = %A" username user.getTweetList
+        //printfn "%s \'s tweetList = %A" username user.getTweetList
 
         tweet_total <- tweet_total.Add(tweetid, tweet)
 
-        printfn "tweet_total = %A" tweet_total
+        //printfn "tweet_total = %A" tweet_total
 
         let mutable prevlist = List<String>.Empty 
         let mutable tmplist = List<String>.Empty 
@@ -186,30 +199,30 @@ let send username tweet_cont tag_string men_string =
                 prevlist <- [tweetid] |> List.append prevlist
                 mention_total <- mention_total.Add(curmen, prevlist)
                 idx <- idx + 1 // done
-        resp <- "Send success!"
+        resp <- "[Server Response][Send]: "+username+" Send success!"
     resp
 
 let subscribe (user1: string, user2: string) =
     let mutable resp = ""
     if not (user_total.ContainsKey(user1) && user_total.ContainsKey(user2)) then
-        resp <- "User1 or User2 Not Found!" 
+        resp <- "[Server Response][Subscribe]: "+user1+" or "+user2+" Not Found!" 
     else
         let user = user_total.[user1]
         user.subscribe user2
-        resp <- user1 + " Subscribed " + user2 + "Successfully!"
-    resp // done
+        resp <- "[Server Response][Subscribe]: "+user1+" Subscribed "+user2+" Successfully!"
+    resp 
 
-let retweet (user: String, tweet_id: String) =
+let retweet (username: String, tweet_id: String) =
     let mutable resp = ""
-    if not (user_total.ContainsKey(user)) then
-        resp <- "User Not Found!"
+    if not (user_total.ContainsKey(username)) then
+        resp <- "[Server Response][Retweet]: User Not Found!"
     else if not (tweet_total.ContainsKey(tweet_id)) then
-        resp <- "Tweet Not Found!"
+        resp <- "[Server Response][Retweet]: Tweet Not Found!"
     else 
         let old_tweet = tweet_total.[tweet_id]
         let old_content = old_tweet.content
-        let new_id = user + tweet_id
-        let user = user_total.[user]
+        let new_id = username + tweet_id
+        let user = user_total.[username]
         let new_tweet = new Tweet(new_id, old_content)
         user.addTweet new_id
 
@@ -242,17 +255,21 @@ let retweet (user: String, tweet_id: String) =
                 prevlist <- [new_id] |> List.append prevlist
                 mention_total <- mention_total.Add(curmen, prevlist)
                 idx <- idx + 1 // done
-        resp <- "Retweet Success!"
+        resp <- "[Server Response][Retweet]: "+username+"Retweet Success!"
     resp
                 
 let query username = 
     let mutable resp = ""
+    let mutable rand_id = ""
     if not (user_total.ContainsKey(username)) then
-        resp <- "User Not Found!"
+        resp <- "[Server Response][Query]: Username of "+username+" Not Found!"
     else
         let user = user_total.[username]    
         let res1 = user.getSubscriberList |> List.map(fun x -> user_total.[x]) |> List.map(fun x -> x.getTweetList) |> List.concat |> List.map(fun x->tweet_total.[x])|> List.map(fun x -> x.content) |> String.concat "\n"
-        resp <- "Tweets Subscribed :" + res1
+        resp <- "[Server Response][Query]: Tweets Subscribed by"+username+":"+res1
+        //let s1 = user.getSubscriberList |> List.map(fun x -> user_total.[x]) |> List.map(fun x -> x.getTweetList) |> List.concat 
+        //rand_id <- s1 |> shuffleR (Random ()) |> Seq.head
+    //resp <- resp + "&" + rand_id
     resp // done
         //let sub_username_list = user.getSubscriberList
         //let sub_user_list = List.map(fun x -> user_total.[x]) sub_username_list
@@ -265,25 +282,28 @@ let query username =
 let quert tag = 
     let mutable resp = ""
     if not (tag_total.ContainsKey(tag)) then
-        resp <- "Tag Not Found!"
+        resp <- "[Server Response][QueryTag]: Tag of "+tag+" Not Found!"
     else
         let res1 = tag_total.[tag] |> List.map(fun x -> tweet_total.[x]) |> List.map(fun x -> x.content) |> String.concat "\n"
-        resp <- "Tweet containing Tag :" + res1 // done
+        resp <- "[Server Response][QueryTag]: Tweets containing Tag :" + res1 
     resp
 
 let querm men = 
     let mutable resp = ""
     if not (mention_total.ContainsKey(men)) then
-        resp <- "Mention Not Found!"
+        resp <- "[Server Response][QueryMention]: Mention of "+men+" Not Found!"
     else
         let res1 = mention_total.[men] |> List.map(fun x -> tweet_total.[x]) |> List.map(fun x -> x.content) |> String.concat "\n"
-        resp <- "Tweet containing Mention :" + res1 // done
+        resp <- "[Server Response][QueryMention]: Tweets containing Mention :" + res1 
     resp
 
 let system = System.create "Project4" (Configuration.load())
 
 ////Used for remote communication
 //let system = System.create "Project4" config
+      
+
+let RemoteClient = system.ActorSelection("akka.tcp://RemoteClient@localhost:9001/user/Actor-Generator")
 
 let RegActor =
     spawn system ("Actor-register")
@@ -301,11 +321,9 @@ let RegActor =
                 | :? regMsg as msg ->
                     let username = msg.username
                     let res = register username
-
-                    printfn "register response: %s" res
-
-                    //sender <? res |> ignore
-                    Threading.Thread.Sleep(10)
+                    // printfn "register response: %s" res
+                    RemoteClient <? res |> ignore
+                    // Threading.Thread.Sleep(10)
                 | _ -> () 
                 return! loop()
             }
@@ -329,9 +347,11 @@ let SubActor =
                     let user = msg.username
                     let target_user = msg.target
                     let res = subscribe(user, target_user)
-
-                    //sender <? res |> ignore
-                    Threading.Thread.Sleep(10)
+                    //let ori_sender = msg.sender
+                    //printfn "subscribe response: %s" res
+                    //let response_msg = {content = res}
+                    RemoteClient <? res |> ignore
+                    //Threading.Thread.Sleep(10)
                 | _ -> () 
                 return! loop()
             }
@@ -357,8 +377,10 @@ let SendActor =
                     let tag_string = msg.tag_string
                     let men_string = msg.men_string
                     let res = send user tweet_cont tag_string men_string
-
-                    printfn "send response: %s" res
+                    RemoteClient <? res |> ignore
+                    //let ori_sender = msg.sender
+                    //printfn "send response: %s" res
+                    //ori_sender <? res |> ignore
 
                     //sender <? res |> ignore
                     Threading.Thread.Sleep(10)
@@ -385,8 +407,10 @@ let RetwActor =
                     let user = msg.username
                     let tweet_id = msg.tweet_id
                     let res = retweet(user, tweet_id)
-
-                    printfn "retweet response: %s" res
+                    RemoteClient <? res |> ignore
+                    //let ori_sender = msg.sender
+                    //printfn "retweet response: %s" res
+                    //ori_sender <? res |> ignore
 
                     //sender <? res |> ignore
                     Threading.Thread.Sleep(1000)
@@ -412,10 +436,9 @@ let QueryActor =
                 | :? queryMsg as msg ->
                     let user = msg.user
                     let res = query user
-
-                    printfn "query response: %s" res
-
-                    //sender <? res |> ignore
+                    RemoteClient <? res |> ignore
+                    //let ori_sender = msg.sender
+                    
                     Threading.Thread.Sleep(10)
                 | _ -> () 
                 return! loop()
@@ -439,9 +462,7 @@ let TagActor =
                 | :? quertMsg as msg ->
                     let tag = msg.tag
                     let res = quert tag
-                    printfn "query tag response: %s" res
-                    //sender <? res |> ignore
-                    Threading.Thread.Sleep(10)
+                    RemoteClient <? res |> ignore
                 | _ -> () 
                 return! loop()
             }
@@ -464,11 +485,7 @@ let MentionActor =
                 | :? quermMsg as msg ->
                     let men = msg.mention
                     let res = querm men
-
-                    printfn "query mention response: %s" res 
-
-                    //sender <? res |> ignore
-                    Threading.Thread.Sleep(10)
+                    RemoteClient <? res |> ignore
                 | _ -> () 
                 return! loop()
             }
@@ -482,10 +499,15 @@ let Handler =
             //buildTime.Start()
             let rec loop() = actor {
                 let! message = mailbox.Receive()
-                let sender = mailbox.Sender()             
+                let sender = mailbox.Sender()  
+                let ClientServer = system.ActorSelection("akka.tcp://RemoteClient@localhost:9001/user/RemoteServer")
                 match box message with
                 | :? int as msg ->
                     printfn "%i" msg
+                // :? responseMsg as msg ->
+                //    let response_msg = msg.content
+                //    ClientServer <! response_msg
+
                 | :? string as msg ->                   
                     let result = msg.Split ','
                     //printfn "result = %A" result
@@ -498,7 +520,7 @@ let Handler =
                     let mutable mention = result.[6]
                     match operation with 
                     | "reg"  ->      
-                        let newMessage = {username = username}
+                        let newMessage = { username = username}
 
                         //Used for local communication
                         let destActor = RegActor
@@ -573,16 +595,39 @@ let Handler =
             loop()
         )
 
+let tweetIdActor = 
+    spawn system ("tweetIdActor")
+        (fun mailbox ->          
+            let buildTime = Diagnostics.Stopwatch()
+            buildTime.Start()
+            let rec loop() = actor {
+                let! message = mailbox.Receive()
+                let sender = mailbox.Sender()             
+                match box message with
+                | :? int as msg ->
+                    printfn "%i" msg
+                | :? string as msg ->
+                    let username = msg
+                    let user = user_total.[username]
+                    let s1 = user.getSubscriberList |> List.map(fun x -> user_total.[x]) |> List.map(fun x -> x.getTweetList) |> List.concat 
+                    let rand_id = s1 |> shuffleR (Random ()) |> Seq.head
+                    let msgToHandler = "retw,"+username+",,"+rand_id+",,,"
+                    Handler <! msgToHandler
+                | _ -> () 
+                return! loop()
+            }
+            loop()
+        ) 
 
 [<EntryPoint>] 
 let main argv =
     // once we received a set of string, dispatch to different functional actor
     // dispatch was based on the opt.
 
-    printfn "------------------------------------------------- \n " 
-    printfn "-------------------------------------------------   " 
-    printfn "Twitter Server is running...   " 
-    printfn "-------------------------------------------------   "
+ 
+    printfn "##############################################" 
+    printfn "######   Twitter Server is On   ##############" 
+    printfn "##############################################"
 
     //register test
     let regMsg1 = "reg,hjn,,,,,"
@@ -632,5 +677,5 @@ let main argv =
     // For function reg
     Console.ReadLine() |> ignore
    
-    printfn "-----------------------------------------------------------\n" 
+    printfn "############################################" 
     0
