@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "F987/N9T4E7pQ2N/fP2ij/UNK5C3Mm+wMHbx3S+55nzETTgRNDl7r4uwfnYaWgXq4uXW36TK6llIeyUact97DQ==",
+  "dgSpecHash": "7h5vibPq2h3UZJ+w4r4kP9EOTnCfA48hCNVTKcbTBLUJ2woxoRNal+JB6+3Ddf5CH9pxTvzhtJTb6y10Q2m2VQ==",
   "success": true,
-  "projectFilePath": "C:\\Users\\czhan\\Desktop\\Projects\\21fall\\DOSP\\pro\\pro4\\pro4\\pro4\\pro4.fsproj",
+  "projectFilePath": "C:\\Users\\czhan\\Desktop\\Projects\\21fall\\DOSP\\pro\\pro4\\pro4\\client\\client.fsproj",
   "expectedPackageFiles": [
-    "C:\\Users\\czhan\\.nuget\\packages\\akka\\1.4.27\\akka.1.4.27.nupkg.sha512",
-    "C:\\Users\\czhan\\.nuget\\packages\\akka.fsharp\\1.4.27\\akka.fsharp.1.4.27.nupkg.sha512",
-    "C:\\Users\\czhan\\.nuget\\packages\\akka.remote\\1.4.27\\akka.remote.1.4.27.nupkg.sha512",
+    "C:\\Users\\czhan\\.nuget\\packages\\akka\\1.4.28\\akka.1.4.28.nupkg.sha512",
+    "C:\\Users\\czhan\\.nuget\\packages\\akka.fsharp\\1.4.28\\akka.fsharp.1.4.28.nupkg.sha512",
+    "C:\\Users\\czhan\\.nuget\\packages\\akka.remote\\1.4.28\\akka.remote.1.4.28.nupkg.sha512",
     "C:\\Users\\czhan\\.nuget\\packages\\dotnetty.buffers\\0.6.0\\dotnetty.buffers.0.6.0.nupkg.sha512",
     "C:\\Users\\czhan\\.nuget\\packages\\dotnetty.codecs\\0.6.0\\dotnetty.codecs.0.6.0.nupkg.sha512",
     "C:\\Users\\czhan\\.nuget\\packages\\dotnetty.common\\0.6.0\\dotnetty.common.0.6.0.nupkg.sha512",
@@ -117,5 +117,16 @@
     "C:\\Users\\czhan\\.nuget\\packages\\system.xml.readerwriter\\4.3.0\\system.xml.readerwriter.4.3.0.nupkg.sha512",
     "C:\\Users\\czhan\\.nuget\\packages\\system.xml.xdocument\\4.3.0\\system.xml.xdocument.4.3.0.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1605",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Detected package downgrade: FSharp.Core from 6.0.1 to 5.0.0. Reference the package directly from the project to select a different version. \r\n client -> Akka.FSharp 1.4.28 -> FSharp.Core (>= 6.0.1) \r\n client -> FSharp.Core (>= 5.0.0)",
+      "libraryId": "FSharp.Core",
+      "targetGraphs": [
+        "net5.0"
+      ]
+    }
+  ]
 }

@@ -14,7 +14,8 @@ open Akka.Configuration
 // 4. functActor PROCESSES functMsg  ///////////////////
 ////////////////////////////////////////////////////////
 
-// regMsg: registration; subMsg: subscribe; sendMsg: post tweet;
+// regMsg: registration; subMsg: subscribe; 
+// sendMsg: post tweet;
 // retwMsg: retweet;       queryMsg: query by user;
 // quertMsg: query by tag; quermMsg: query by mention.
 
@@ -108,6 +109,9 @@ let mutable tweet_total = new Map<String, Tweet>([])         // <tweet_id,      
 let mutable tag_total = new Map<String, String list>([])     // <tag_content,     list of tweet_id>
 let mutable mention_total = new Map<String, String list>([]) // <mention_content, list of tweet_id>
 
+//
+// let mutable tag_list = []
+
 //let verify username password = 
 //    let mutable valid = false
 //    if users.ContainsKey(username) then
@@ -168,7 +172,7 @@ let send username tweet_cont tag_string men_string =
                 tag_total <- tag_total.Add(curtag, prevlist)
                 idx <- idx + 1
         if not (String.Empty = men_string) then
-            let mens = splitTag men_string
+            let mens = splitMen men_string
             tweet.set_men mens
             let mlen = List.length mens
             idx <- 0
@@ -180,7 +184,7 @@ let send username tweet_cont tag_string men_string =
                     mention_total <- mention_total.Add(curmen, tmplist)
                 prevlist <- mention_total.[curmen]
                 prevlist <- [tweetid] |> List.append prevlist
-                tag_total <- tag_total.Add(curmen, prevlist)
+                mention_total <- mention_total.Add(curmen, prevlist)
                 idx <- idx + 1 // done
         resp <- "Send success!"
     resp
@@ -435,9 +439,7 @@ let TagActor =
                 | :? quertMsg as msg ->
                     let tag = msg.tag
                     let res = quert tag
-
                     printfn "query tag response: %s" res
-
                     //sender <? res |> ignore
                     Threading.Thread.Sleep(10)
                 | _ -> () 
