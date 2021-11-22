@@ -1,5 +1,6 @@
 ﻿open System
 open Akka.FSharp
+open Akka.Remote
 open System.IO
 open System.Security.Cryptography
 open Akka.Configuration
@@ -42,10 +43,13 @@ let config =
                 }
             }
             remote.helios.tcp {
-                hostname = ""localhost""
+                hostname = localhost
                 port = 9002
             }
         }"
+
+
+
 type responseMsg = {
     content: String
 }
@@ -297,7 +301,7 @@ let querm men =
         resp <- "[Server Response][QueryMention]: Tweets containing Mention :" + res1 
     resp
 
-let system = System.create "Project4" (Configuration.load())
+let system = System.create "Project4" config
 
 ////Used for remote communication
 //let system = System.create "Project4" config
@@ -510,7 +514,7 @@ let Handler =
 
                 | :? string as msg ->                   
                     let result = msg.Split ','
-                    //printfn "result = %A" result
+                    printfn "result = %A" result
                     let mutable operation = result.[0]
                     let mutable username = result.[1]
                     let mutable tweet_content = result.[2]
@@ -629,49 +633,49 @@ let main argv =
     printfn "######   Twitter Server is On   ##############" 
     printfn "##############################################"
 
-    //register test
-    let regMsg1 = "reg,hjn,,,,,"
-    Handler <! regMsg1
-    Threading.Thread.Sleep(1000)
-    let regMsg2 = "reg,嘉然今天吃什么,,,,,"
-    Handler <! regMsg2
-    Threading.Thread.Sleep(1000)
-    let regMsg3 = "reg,乃琳,,,,,"
-    Handler <! regMsg3
-    Threading.Thread.Sleep(1000)
-    let regMsg4 = "reg,贝拉,,,,,"
-    Handler <! regMsg4
-    Threading.Thread.Sleep(1000)
+    ////register test
+    //let regMsg1 = "reg,hjn,,,,,"
+    //Handler <! regMsg1
+    //Threading.Thread.Sleep(1000)
+    //let regMsg2 = "reg,嘉然今天吃什么,,,,,"
+    //Handler <! regMsg2
+    //Threading.Thread.Sleep(1000)
+    //let regMsg3 = "reg,乃琳,,,,,"
+    //Handler <! regMsg3
+    //Threading.Thread.Sleep(1000)
+    //let regMsg4 = "reg,贝拉,,,,,"
+    //Handler <! regMsg4
+    //Threading.Thread.Sleep(1000)
 
-    //send test
-    let sendMsg1 = "send,hjn,然然可爱捏,,,嘉然超话,嘉然今天吃什么"
-    Handler <! sendMsg1
-    Threading.Thread.Sleep(1000)
-    let sendMsg2 = "send,嘉然今天吃什么,然然不是你的电子宠物,,,ASOUL超话#乃琳超话,乃琳@贝拉"
-    Handler <! sendMsg2
-    Threading.Thread.Sleep(1000)
+    ////send test
+    //let sendMsg1 = "send,hjn,然然可爱捏,,,嘉然超话,嘉然今天吃什么"
+    //Handler <! sendMsg1
+    //Threading.Thread.Sleep(1000)
+    //let sendMsg2 = "send,嘉然今天吃什么,然然不是你的电子宠物,,,ASOUL超话#乃琳超话,乃琳@贝拉"
+    //Handler <! sendMsg2
+    //Threading.Thread.Sleep(1000)
 
-    //subscribe test
-    let subMsg = "sub,hjn,,,嘉然今天吃什么,,"
-    Handler <! subMsg
-    Threading.Thread.Sleep(1000)
+    ////subscribe test
+    //let subMsg = "sub,hjn,,,嘉然今天吃什么,,"
+    //Handler <! subMsg
+    //Threading.Thread.Sleep(1000)
 
-    //retweet test
+    ////retweet test
 
-    //query test
-    let queryMsg = "query,hjn,,,,,"
-    Handler <! queryMsg
-    Threading.Thread.Sleep(1000)
+    ////query test
+    //let queryMsg = "query,hjn,,,,,"
+    //Handler <! queryMsg
+    //Threading.Thread.Sleep(1000)
 
-    //query tag test
-    let quertMsg = "quert,,,,,嘉然超话,"
-    Handler <! quertMsg
-    Threading.Thread.Sleep(1000)
+    ////query tag test
+    //let quertMsg = "quert,,,,,嘉然超话,"
+    //Handler <! quertMsg
+    //Threading.Thread.Sleep(1000)
 
-    //query mention test
-    let quermMsg = "querm,,,,,,嘉然今天吃什么"
-    Handler <! quermMsg
-    Threading.Thread.Sleep(1000)
+    ////query mention test
+    //let quermMsg = "querm,,,,,,嘉然今天吃什么"
+    //Handler <! quermMsg
+    //Threading.Thread.Sleep(1000)
 
     
     // For function reg

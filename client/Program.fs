@@ -1,5 +1,7 @@
 ﻿open System
 open Akka.FSharp
+open Akka.Remote
+open Akka.Actor
 open System.IO
 open System.Security.Cryptography
 open Akka.Configuration
@@ -19,7 +21,7 @@ type operationMsg = {
 //    user_id: int   
 //}
 
-////Local Client and Remote Server
+//Local Client and Remote Server
 let config =
     Configuration.parse
         @"akka {
@@ -34,14 +36,36 @@ let config =
                 }
             }
             remote.helios.tcp {
-                hostname = ""localhost""
+                hostname = localhost
                 port = 9001
             }
         }"
 
+//let configuration = 
+//    ConfigurationFactory.ParseString(
+//        @"akka {
+//            actor {
+//                provider = ""Akka.Remote.RemoteActorRefProvider, Akka.Remote""
+//                deployment {
+//                    /remoteecho {
+//                        remote = ""akka.tcp://Project4@localhost:9002""
+//                    }
+//                }
+//            }
+//            remote {
+//                helios.tcp {
+//                    port = 9001
+//                    hostname = localhost
+//                }
+//            }
+//        }")
+//let system = ActorSystem.Create("RemoteClient", configuration)
+
 let system = System.create "RemoteClient" config
-let RemoteServer = system.ActorSelection("akka.tcp://Project4@localhost:9002/user/RemoteServer")
+let RemoteServer = system.ActorSelection("akka.tcp://Project4@localhost:9002/user/Actor-MsgHandler")
 let tweetIdServer = system.ActorSelection("akka.tcp://Project4@localhost:9002/user/tweetIdActor")
+
+let mutable count = 0
 
 let CreateUsersActor =
     spawn system ("Actor" + "-Creator")
@@ -61,8 +85,8 @@ let CreateUsersActor =
                     let user_id = "user" + (user_dig |> string)
                     let msgToServer = "reg,"+user_id+",,,,," 
                     let resp = RemoteServer <! msgToServer
-                    printfn "[Register]: User %i with user id of %s" user_dig user_id
-                    printfn "[Response from Server]: %s" (resp |> string)
+                    //printfn "[Register]: User %i with user id of %s" user_dig user_id
+                    //printfn "[Response from Server]: %s" (resp |> string)
                     Threading.Thread.Sleep(10)
                 | _ -> () 
                 return! loop()
@@ -82,8 +106,9 @@ let GenerateMessageActor =
                 | :? int as msg ->
                     printfn "%i" msg
                 | :? string as msg ->
+                    count <- count + 1
                     //let handler = system.ActorSelection("akka.tcp://Project4@localhost:9002/user/Actor-MsgHandler")
-                    printfn "%s" msg
+                    //printfn "%s" msg
                 | :? operationMsg as msg ->
                     let operation_id = msg.operation_id
                     let num_of_user = msg.num_of_users
@@ -184,95 +209,126 @@ let GenerateMessageActor =
 
 [<EntryPoint>]
 let main argv =
+    
     printf "Input the number of users: "
     let N = Console.ReadLine() |> int
+    let total_count = (float)N * 0.9 |> int
+    
 
     // Create N users with user_id
+    let stopWatch = System.Diagnostics.Stopwatch.StartNew()
     for i = 0 to N - 1 do
-        let createUserMsg = {user_id = i}
-        let resp = CreateUsersActor <! createUserMsg
-        printfn "[Register]: User %i" i 
 
-    // Create Zipf Distribution of subscribers.
-    let mutable increment = 0
-    let mutable user1_id = ""
-    let mutable user2_id = ""
-    let mutable msgToServer = ""
-    for i = 0 to N - 1 do
-        increment <- i + 1
-        for j in 0..increment..N - 1 do
-            if not (i=j) then
-                user1_id <- "user" + (i |> string)
-                user2_id <- "user" + (j |> string)
-                msgToServer <- "sub," + user1_id + ",,," + user2_id + ",,"
-                printfn "[Client Subscribe]: User %i to User %i" i j
-                RemoteServer <! msgToServer
-                
+        let createUserMsg = {user_id = i}
+        CreateUsersActor <! createUserMsg
+        //printfn "[Register]: User %i" i
+
+    while(count < total_count) do
+        printfn "Received %i responses" count
+        printfn "total_count = %i" total_count
+    stopWatch.Stop()
+    printfn "register_time = %f" stopWatch.Elapsed.TotalMilliseconds
+
+        
+            
+
+
+    //// Create Zipf Distribution of subscribers.
+    //let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+    //let mutable increment = 0
+    //let mutable user1_id = ""
+    //let mutable user2_id = ""
+    //let mutable msgToServer = ""
+    //for i = 0 to N - 1 do
+    //    increment <- i + 1
+    //    for j in 0..increment..N - 1 do
+    //        if not (i=j) then
+    //            user1_id <- "user" + (i |> string)
+    //            user2_id <- "user" + (j |> string)
+    //            msgToServer <- "sub," + user1_id + ",,," + user2_id + ",,"
+    //            //printfn "[Client Subscribe]: User %i to User %i" i j
+    //            RemoteServer <! msgToServer
+    //stopWatch.Stop()
+    //printfn "subscribe_time = %f" stopWatch.Elapsed.TotalMilliseconds
+    
            
 
-    // Users posts tweets
-    let mutable numPost = 0
-    let maxPost = (int)(N/5)
-    let mutable numTag = 0
-    let mutable curTag = 0
-    let maxTag = 3
-    let mutable numMen = 0
-    let mutable curMen = 0
-    let maxMen = 3
-    let mutable stringTag = ""
-    let mutable stringMen = ""
-    let mutable tweetContent = ""
+    //// Users posts tweets
+    //let mutable numPost = 0
+    //let maxPost = (int)(N/5)
+    //let mutable numTag = 0
+    //let mutable curTag = 0
+    //let maxTag = 3
+    //let mutable numMen = 0
+    //let mutable curMen = 0
+    //let maxMen = 3
+    //let mutable stringTag = ""
+    //let mutable stringMen = ""
+    //let mutable tweetContent = ""
 
-    for i = 0 to N - 1 do
-        numPost <- maxPost - (int)(i/10)
-        user1_id <- "user" + (i|>string)
-        for j = 0 to numPost - 1 do
-            stringTag <- ""
-            stringMen <- ""
-            numTag <- Random().Next(0, maxTag + 1) 
-            numMen <- Random().Next(0, maxMen + 1)
-            if numTag >= 1 then
-                curTag <- Random().Next(0, N)
-                stringTag <- "Tag" + (curTag |> string)
-                if numTag > 1 then
-                    for k = 1 to numTag do
-                        curTag <- Random().Next(0, N)
-                        stringTag <- stringTag + "#Tag" + (curTag |> string)
-            if numMen >= 1 then
-                curMen <- Random().Next(0, N)
-                stringMen <- "user" + (curMen |> string)
-                if numMen > 1 then
-                    for k = 1 to numMen do
-                        curMen <- Random().Next(0, N)
-                        stringMen <- stringMen + "@user" + (curMen |> string)
-            tweetContent <- "(" + (i|>string) + "th user " + (j|>string) + "th tweets)"
-            msgToServer <- "send,"+user1_id+","+tweetContent+",,,"+stringTag+","+stringMen
-            printfn "[Client Post]: %i th user post %i th tweets!" i j
-            RemoteServer <! msgToServer            
-            //printfn "[Response from Server]: %s" (resp |> string)
+    //let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+    //for i = 0 to N - 1 do
+    //    numPost <- maxPost - (int)(i/10)
+    //    user1_id <- "user" + (i|>string)
+    //    for j = 0 to numPost - 1 do
+    //        stringTag <- ""
+    //        stringMen <- ""
+    //        numTag <- Random().Next(0, maxTag + 1) 
+    //        numMen <- Random().Next(0, maxMen + 1)
+    //        if numTag >= 1 then
+    //            curTag <- Random().Next(0, N)
+    //            stringTag <- "Tag" + (curTag |> string)
+    //            if numTag > 1 then
+    //                for k = 1 to numTag do
+    //                    curTag <- Random().Next(0, N)
+    //                    stringTag <- stringTag + "#Tag" + (curTag |> string)
+    //        if numMen >= 1 then
+    //            curMen <- Random().Next(0, N)
+    //            stringMen <- "user" + (curMen |> string)
+    //            if numMen > 1 then
+    //                for k = 1 to numMen do
+    //                    curMen <- Random().Next(0, N)
+    //                    stringMen <- stringMen + "@user" + (curMen |> string)
+    //        tweetContent <- "(" + (i|>string) + "th user " + (j|>string) + "th tweets)"
+    //        msgToServer <- "send,"+user1_id+","+tweetContent+",,,"+stringTag+","+stringMen
+    //        //printfn "[Client Post]: %i th user post %i th tweets!" i j
+    //        RemoteServer <! msgToServer            
+    //        //printfn "[Response from Server]: %s" (resp |> string)
+    //stopWatch.Stop()
+    //printfn "send_time = %f" stopWatch.Elapsed.TotalMilliseconds
 
-    // Users retweets
-    let mutable msgToId = ""
-    let mutable resp_1 = ""
-    let mutable tweet_id = ""
-    let tweetIdActor = system.ActorSelection("akka.tcp://Project4@localhost:9001/user/tweetIdActor")
-    for i = 0 to N - 1 do
-        user1_id <- "user" + (i|>string)
-        msgToId <- user1_id
-        tweetIdActor <! msgToId
-        printfn "[Client Retweet]: %i th user retweets!" i
-        //let resp = msgToServer/Hnader <! msgTold
-        //tweet_id <- resp_1 |> string
-        //msgToServer <- "retw,"+user1_id+",,"+tweet_id+",,,"
+    //// Users retweets
+    //let mutable msgToId = ""
+    //let mutable resp_1 = ""
+    //let mutable tweet_id = ""
+    //let tweetIdActor = system.ActorSelection("akka.tcp://Project4@localhost:9002/user/tweetIdActor")
+    //let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+    //for i = 0 to N - 1 do
+    //    user1_id <- "user" + (i|>string)
+    //    msgToId <- user1_id
+    //    tweetIdActor <! msgToId
+    //    //printfn "[Client Retweet]: %i th user retweets!" i
+    //    //let resp = msgToServer/Hnader <! msgTold
+    //    //tweet_id <- resp_1 |> string
+    //    //msgToServer <- "retw,"+user1_id+",,"+tweet_id+",,,"
+    //stopWatch.Stop()
+    //printfn "retweet_time = %f" stopWatch.Elapsed.TotalMilliseconds
 
-    // Randomly apply 100 operations, except the registeration.
-    let mutable op_id = 0
-    for k = 0 to 100 do
-        op_id <- Random().Next(1, 7)
-        let msgToGenerator = {num_of_users = N; operation_id = op_id}
-        printfn "[Client Random Operation]: operation id = %i" op_id
-        GenerateMessageActor <! msgToGenerator
+    //// Randomly apply 100 operations, except the registeration.
+
+    //let mutable op_id = 0
+    //let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+    //for k = 0 to 100 do
+    //    op_id <- Random().Next(1, 7)
+    //    let msgToGenerator = {num_of_users = N; operation_id = op_id}
+    //    //printfn "[Client Random Operation]: operation id = %i" op_id
+    //    GenerateMessageActor <! msgToGenerator
+    //stopWatch.Stop()
+    //printfn "randon_operation_time = %f" stopWatch.Elapsed.TotalMilliseconds
+    //let msg = "reg,hjn,,,,,"
+    //RemoteServer <! msg
+    
 
  
-
+    Console.ReadLine() |> ignore
     0 // return an integer exit code
