@@ -45,7 +45,7 @@ In this project, we built a tiny social network service (SNS), similar in concep
 
   Input the number of users.
 
-  ![Input](C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\src\Input.jpg)
+  ![Input](https://github.com/bakerston/MiniTwitter/tree/main/src/Input.jpg)
 
 **The current code prints all response from server and client for all required operation. However, we commented some part of the code for testing for the sake of brevity. In order to test the performance as we did in the report, please comment out the related test code.**
 
@@ -105,7 +105,7 @@ In this project, we built a tiny social network service (SNS), similar in concep
 
 - #### System Architecture.
 
-  ![DOSP_pro_3-dosp_project4_part1.drawio](C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\src\DOSP_pro_3-dosp_project4_part1.drawio.png)
+  ![DOSP_pro_3-dosp_project4_part1.drawio](https://github.com/bakerston/MiniTwitter/tree/main/src/DOSP_pro_3-dosp_project4_part1.drawio.png)
 
   As showed above, both the remote client and remote server have multiple actors. Here, 
 
@@ -133,7 +133,7 @@ In this project, we built a tiny social network service (SNS), similar in concep
 
     Response:
 
-    ![Reg](C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\src\Reg.png)
+    ![Reg](https://github.com/bakerston/MiniTwitter/tree/main/src/Reg.png)
 
   - Subscription
 
@@ -141,7 +141,7 @@ In this project, we built a tiny social network service (SNS), similar in concep
 
     Response:
 
-    ![Sub](C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\src\Sub.png)
+    ![Sub](https://github.com/bakerston/MiniTwitter/tree/main/src/Sub.png)
 
   - Tweet
 
@@ -153,7 +153,7 @@ In this project, we built a tiny social network service (SNS), similar in concep
 
     Response:
 
-    ![QueryUser](C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\src\QueryUser.png)
+    ![QueryUser](https://github.com/bakerston/MiniTwitter/tree/main/src/QueryUser.png)
 
   - Query by Mentions
 
@@ -161,7 +161,7 @@ In this project, we built a tiny social network service (SNS), similar in concep
 
     Response:
 
-    ![QueryMention](C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\src\QueryMention.png)
+    ![QueryMention](https://github.com/bakerston/MiniTwitter/tree/main/src/QueryMention.png)
 
   - Query by Tags
 
@@ -169,7 +169,7 @@ In this project, we built a tiny social network service (SNS), similar in concep
 
     Response:
 
-    ![QueryTag](C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\src\QueryTag.jpg)
+    ![QueryTag](https://github.com/bakerston/MiniTwitter/tree/main/src/QueryTag.jpg)
 
   - Retweet
 
@@ -177,13 +177,13 @@ In this project, we built a tiny social network service (SNS), similar in concep
 
     Response:
 
-    ![Retweet](C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\src\Retweet.jpg)
+    ![Retweet](https://github.com/bakerston/MiniTwitter/tree/main/src/Retweet.jpg)
 
 ## Result.
 
 - Zipf's Law on number of subscribers. Here we simulate the distribution among **100** users.
 
-  ![exe_1](C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\src\exe_1.png)
+  ![exe_1](https://github.com/bakerston/MiniTwitter/tree/main/src/exe_1.png)
 
 - The maximum number of users we tested is 1000. 
 
@@ -198,7 +198,7 @@ In this project, we built a tiny social network service (SNS), similar in concep
 | 500          | 4922.6 | 1086.5 | 49412.6 | 449651.1 | 1004.3 | 54.7  | 64.1  |
 | 1000         | 9841.6 | 2153   | 98664.9 | 866574   | 990.9  | 54.9  | 41.8  |
 
-![performance](C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\src\performance.png)
+![performance](https://github.com/bakerston/MiniTwitter/tree/main/src/performance.png)
 
 
 
@@ -213,6 +213,6 @@ In this project, we built a tiny social network service (SNS), similar in concep
 | 500             | 294.9  |
 | 1000            | 291.6  |
 
-![random](C:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\src\random.png)
+![random](https://github.com/bakerston/MiniTwitter/tree/main/src/random.png)
 
 We can tell that given the number of operations (M), the overall time doesn't depend heavily on the total number of users (N), Since each single operation contains constant number of message deliveries and calculations which are not in proportional to the number of users, thus the operation time is stable regardless of the community size.
