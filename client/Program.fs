@@ -187,7 +187,7 @@ let GenerateMessageActor =
                     | 5 ->
                         operation_type <- "quert"
                         let tag_id = Random().Next(0, num_of_user)
-                        let tag = (tag_id |> string)
+                        let tag = "Tag" + (tag_id |> string)
                         msgToServer <- "quert,,,,,"+tag+","
                         let handler = system.ActorSelection("akka.tcp://Project4@localhost:9002/user/Actor-MsgHandler")
                         handler <! msgToServer
@@ -234,101 +234,100 @@ let main argv =
 
 
     //// Create Zipf Distribution of subscribers.
-    //let stopWatch = System.Diagnostics.Stopwatch.StartNew()
-    //let mutable increment = 0
-    //let mutable user1_id = ""
-    //let mutable user2_id = ""
-    //let mutable msgToServer = ""
-    //for i = 0 to N - 1 do
-    //    increment <- i + 1
-    //    for j in 0..increment..N - 1 do
-    //        if not (i=j) then
-    //            user1_id <- "user" + (i |> string)
-    //            user2_id <- "user" + (j |> string)
-    //            msgToServer <- "sub," + user1_id + ",,," + user2_id + ",,"
-    //            //printfn "[Client Subscribe]: User %i to User %i" i j
-    //            RemoteServer <! msgToServer
-    //stopWatch.Stop()
-    //printfn "subscribe_time = %f" stopWatch.Elapsed.TotalMilliseconds
+    let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+    let mutable increment = 0
+    let mutable user1_id = ""
+    let mutable user2_id = ""
+    let mutable msgToServer = ""
+    for i = 0 to N - 1 do
+        increment <- i + 1
+        for j in 0..increment..N - 1 do
+            if not (i=j) then
+                user1_id <- "user" + (i |> string)
+                user2_id <- "user" + (j |> string)
+                msgToServer <- "sub," + user1_id + ",,," + user2_id + ",,"
+                //printfn "[Client Subscribe]: User %i to User %i" i j
+                RemoteServer <! msgToServer
+    stopWatch.Stop()
+    printfn "subscribe_time = %f" stopWatch.Elapsed.TotalMilliseconds
     
            
 
     //// Users posts tweets
-    //let mutable numPost = 0
-    //let maxPost = (int)(N/5)
-    //let mutable numTag = 0
-    //let mutable curTag = 0
-    //let maxTag = 3
-    //let mutable numMen = 0
-    //let mutable curMen = 0
-    //let maxMen = 3
-    //let mutable stringTag = ""
-    //let mutable stringMen = ""
-    //let mutable tweetContent = ""
+    let mutable numPost = 0
+    let maxPost = (int)(N/5)
+    let mutable numTag = 0
+    let mutable curTag = 0
+    let maxTag = 3
+    let mutable numMen = 0
+    let mutable curMen = 0
+    let maxMen = 3
+    let mutable stringTag = ""
+    let mutable stringMen = ""
+    let mutable tweetContent = ""
 
-    //let stopWatch = System.Diagnostics.Stopwatch.StartNew()
-    //for i = 0 to N - 1 do
-    //    numPost <- maxPost - (int)(i/10)
-    //    user1_id <- "user" + (i|>string)
-    //    for j = 0 to numPost - 1 do
-    //        stringTag <- ""
-    //        stringMen <- ""
-    //        numTag <- Random().Next(0, maxTag + 1) 
-    //        numMen <- Random().Next(0, maxMen + 1)
-    //        if numTag >= 1 then
-    //            curTag <- Random().Next(0, N)
-    //            stringTag <- "Tag" + (curTag |> string)
-    //            if numTag > 1 then
-    //                for k = 1 to numTag do
-    //                    curTag <- Random().Next(0, N)
-    //                    stringTag <- stringTag + "#Tag" + (curTag |> string)
-    //        if numMen >= 1 then
-    //            curMen <- Random().Next(0, N)
-    //            stringMen <- "user" + (curMen |> string)
-    //            if numMen > 1 then
-    //                for k = 1 to numMen do
-    //                    curMen <- Random().Next(0, N)
-    //                    stringMen <- stringMen + "@user" + (curMen |> string)
-    //        tweetContent <- "(" + (i|>string) + "th user " + (j|>string) + "th tweets)"
-    //        msgToServer <- "send,"+user1_id+","+tweetContent+",,,"+stringTag+","+stringMen
-    //        //printfn "[Client Post]: %i th user post %i th tweets!" i j
-    //        RemoteServer <! msgToServer            
-    //        //printfn "[Response from Server]: %s" (resp |> string)
-    //stopWatch.Stop()
-    //printfn "send_time = %f" stopWatch.Elapsed.TotalMilliseconds
+    let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+    for i = 0 to N - 1 do
+        numPost <- maxPost - (int)(i/10)
+        user1_id <- "user" + (i|>string)
+        for j = 0 to numPost - 1 do
+            stringTag <- ""
+            stringMen <- ""
+            numTag <- Random().Next(0, maxTag + 1) 
+            numMen <- Random().Next(0, maxMen + 1)
+            if numTag >= 1 then
+                curTag <- Random().Next(0, N)
+                stringTag <- "Tag" + (curTag |> string)
+                if numTag > 1 then
+                    for k = 1 to numTag do
+                        curTag <- Random().Next(0, N)
+                        stringTag <- stringTag + "#Tag" + (curTag |> string)
+            if numMen >= 1 then
+                curMen <- Random().Next(0, N)
+                stringMen <- "user" + (curMen |> string)
+                if numMen > 1 then
+                    for k = 1 to numMen do
+                        curMen <- Random().Next(0, N)
+                        stringMen <- stringMen + "@user" + (curMen |> string)
+            tweetContent <- "(" + (i|>string) + "th user " + (j|>string) + "th tweets)"
+            msgToServer <- "send,"+user1_id+","+tweetContent+",,,"+stringTag+","+stringMen
+            //printfn "[Client Post]: %i th user post %i th tweets!" i j
+            RemoteServer <! msgToServer            
+            //printfn "[Response from Server]: %s" (resp |> string)
+    stopWatch.Stop()
+    printfn "send_time = %f" stopWatch.Elapsed.TotalMilliseconds
 
     //// Users retweets
-    //let mutable msgToId = ""
-    //let mutable resp_1 = ""
-    //let mutable tweet_id = ""
-    //let tweetIdActor = system.ActorSelection("akka.tcp://Project4@localhost:9002/user/tweetIdActor")
-    //let stopWatch = System.Diagnostics.Stopwatch.StartNew()
-    //for i = 0 to N - 1 do
-    //    user1_id <- "user" + (i|>string)
-    //    msgToId <- user1_id
-    //    tweetIdActor <! msgToId
-    //    //printfn "[Client Retweet]: %i th user retweets!" i
-    //    //let resp = msgToServer/Hnader <! msgTold
-    //    //tweet_id <- resp_1 |> string
-    //    //msgToServer <- "retw,"+user1_id+",,"+tweet_id+",,,"
-    //stopWatch.Stop()
-    //printfn "retweet_time = %f" stopWatch.Elapsed.TotalMilliseconds
+    let mutable msgToId = ""
+    let mutable resp_1 = ""
+    let mutable tweet_id = ""
+    let tweetIdActor = system.ActorSelection("akka.tcp://Project4@localhost:9002/user/tweetIdActor")
+    let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+    for i = 0 to N - 1 do
+        user1_id <- "user" + (i|>string)
+        msgToId <- user1_id
+        tweetIdActor <! msgToId
+        //printfn "[Client Retweet]: %i th user retweets!" i
+        //let resp = msgToServer/Hnader <! msgTold
+        //tweet_id <- resp_1 |> string
+        //msgToServer <- "retw,"+user1_id+",,"+tweet_id+",,,"
+    stopWatch.Stop()
+    printfn "retweet_time = %f" stopWatch.Elapsed.TotalMilliseconds
 
     //// Randomly apply 100 operations, except the registeration.
 
-    //let mutable op_id = 0
-    //let stopWatch = System.Diagnostics.Stopwatch.StartNew()
-    //for k = 0 to 100 do
-    //    op_id <- Random().Next(1, 7)
-    //    let msgToGenerator = {num_of_users = N; operation_id = op_id}
-    //    //printfn "[Client Random Operation]: operation id = %i" op_id
-    //    GenerateMessageActor <! msgToGenerator
-    //stopWatch.Stop()
-    //printfn "randon_operation_time = %f" stopWatch.Elapsed.TotalMilliseconds
-    //let msg = "reg,hjn,,,,,"
-    //RemoteServer <! msg
+    let mutable op_id = 0
+    let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+    for k = 0 to 100 do
+        op_id <- Random().Next(1, 7)
+        let msgToGenerator = {num_of_users = N; operation_id = op_id}
+        //printfn "[Client Random Operation]: operation id = %i" op_id
+        GenerateMessageActor <! msgToGenerator
+    stopWatch.Stop()
+    printfn "randon_operation_time = %f" stopWatch.Elapsed.TotalMilliseconds
+    let msg = "reg,hjn,,,,,"
+    RemoteServer <! msg
     
-
  
     Console.ReadLine() |> ignore
     0 // return an integer exit code

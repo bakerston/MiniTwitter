@@ -1,0 +1,3 @@
+c:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\pro4\client\obj\Debug\net5.0\client.AssemblyInfoInputs.cache
+c:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\pro4\client\obj\Debug\net5.0\client.AssemblyInfo.fs
+c:\Users\czhan\Desktop\Projects\21fall\DOSP\pro\pro4\pro4\client\obj\Debug\net5.0\client.fsproj.CoreCompileInputs.cache

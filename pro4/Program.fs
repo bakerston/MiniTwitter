@@ -614,6 +614,7 @@ let tweetIdActor =
                     let username = msg
                     let user = user_total.[username]
                     let s1 = user.getSubscriberList |> List.map(fun x -> user_total.[x]) |> List.map(fun x -> x.getTweetList) |> List.concat 
+                    
                     let rand_id = s1 |> shuffleR (Random ()) |> Seq.head
                     let msgToHandler = "retw,"+username+",,"+rand_id+",,,"
                     Handler <! msgToHandler

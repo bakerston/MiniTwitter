@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\czhan\\Desktop\\Projects\\21fall\\DOSP\\pro\\pro4\\pro4\\client\\client.fsproj": {}
+    "c:\\Users\\czhan\\Desktop\\Projects\\21fall\\DOSP\\pro\\pro4\\pro4\\client\\client.fsproj": {}
   },
   "projects": {
-    "C:\\Users\\czhan\\Desktop\\Projects\\21fall\\DOSP\\pro\\pro4\\pro4\\client\\client.fsproj": {
+    "c:\\Users\\czhan\\Desktop\\Projects\\21fall\\DOSP\\pro\\pro4\\pro4\\client\\client.fsproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\czhan\\Desktop\\Projects\\21fall\\DOSP\\pro\\pro4\\pro4\\client\\client.fsproj",
+        "projectUniqueName": "c:\\Users\\czhan\\Desktop\\Projects\\21fall\\DOSP\\pro\\pro4\\pro4\\client\\client.fsproj",
         "projectName": "client",
-        "projectPath": "C:\\Users\\czhan\\Desktop\\Projects\\21fall\\DOSP\\pro\\pro4\\pro4\\client\\client.fsproj",
+        "projectPath": "c:\\Users\\czhan\\Desktop\\Projects\\21fall\\DOSP\\pro\\pro4\\pro4\\client\\client.fsproj",
         "packagesPath": "C:\\Users\\czhan\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\czhan\\Desktop\\Projects\\21fall\\DOSP\\pro\\pro4\\pro4\\client\\obj\\",
+        "outputPath": "c:\\Users\\czhan\\Desktop\\Projects\\21fall\\DOSP\\pro\\pro4\\pro4\\client\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\czhan\\AppData\\Roaming\\NuGet\\NuGet.Config",
